@@ -10,7 +10,11 @@ Step3: Run "perl passwordscaner.pl".
 
 
 
+
 Support Protocols:
+
 mysql
+
 mssql
+
 Increase in succession...
