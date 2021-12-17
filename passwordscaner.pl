@@ -1,6 +1,8 @@
 use strict;
 use DBI;
 use threads;
+use MongoDB;
+use Try::Tiny;
 
 open OUT,">>result.txt";
 my $thread_e=0;
@@ -15,8 +17,11 @@ while (<IN>){
 		if ($line[0] eq "mysql"){
 			my $t1 = threads->create(\&mysql,"$line[1]","$line[2]");
 		}
-		if ($line[0] eq "mssql"){
+		elsif ($line[0] eq "mssql"){
 			my $t1 = threads->create(\&mssql,"$line[1]","$line[2]");
+		}
+		elsif ($line[0] eq "mongo"){
+			my $t1 = threads->create(\&mongo,"$line[1]","$line[2]");
 		}
 	}
 	else {
@@ -94,11 +99,56 @@ sub mssql{
 	my $port=$_[1];
 	foreach my $user(@user){
 		foreach my $pass(@pass){
-			print "mssql,$ip:$port,$user:$pass\n";
 			my $dsn = "driver={SQL Server};Server=$ip;Port=$port;Database=master;UID=$user;PWD=$pass";
 			my $dbh=DBI->connect("DBI:ODBC:$dsn");
 			if ($dbh){
 				my $out="mssql,$ip:$port,$user:$pass";
+				print OUT $out."\n";
+				$done=1;
+				last;
+			}
+			sleep 1;
+		}
+		if ($done==1){
+			last;
+		}
+	}
+}
+
+sub mongo{
+	my @user;
+	my @pass;
+	open UN,"dic\\mongo_user.txt";
+	while (<UN>){
+		my $user=$_;
+		chomp ($user);
+		push @user,$user;
+	}
+	close UN;
+	open PW,"dic\\mongo_pass.txt";
+	while (<PW>){
+		my $pass=$_;
+		chomp ($pass);
+		push @pass,$pass;
+	}
+	close PW;
+	my $done=0;
+	my $ip=$_[0];
+	my $port=$_[1];
+	foreach my $user(@user){
+		foreach my $pass(@pass){
+			my $client;
+			my $database;
+			try {
+				$client = MongoDB::MongoClient->new(host=>"mongodb://$ip:$port",username=>$user,password=>$pass);
+				$client->connect;
+				$database   = $client->get_database("admin");
+			}
+			catch {
+				$database="";
+			};
+			if ($database){
+				my $out="mongo,$ip:$port,$user:$pass";
 				print OUT $out."\n";
 				$done=1;
 				last;
