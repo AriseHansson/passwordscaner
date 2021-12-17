@@ -9,6 +9,8 @@ Step2: Input the weak passwords in DIC files.
 Step3: Run "perl passwordscaner.pl".
 
 
+
 Support Protocols:
 mysql
 mssql
+Increase in succession...
