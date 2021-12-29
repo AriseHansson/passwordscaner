@@ -3,6 +3,7 @@ use DBI;
 use threads;
 use MongoDB;
 use Try::Tiny;
+use SMB::Client;
 
 open OUT,">>result.txt";
 my $thread_e=0;
@@ -22,6 +23,9 @@ while (<IN>){
 		}
 		elsif ($line[0] eq "mongo"){
 			my $t1 = threads->create(\&mongo,"$line[1]","$line[2]");
+		}
+		elsif ($line[0] eq "smb"){
+			my $t1 = threads->create(\&smb,"$line[1]","$line[2]");
 		}
 	}
 	else {
@@ -149,6 +153,44 @@ sub mongo{
 			};
 			if ($database){
 				my $out="mongo,$ip:$port,$user:$pass";
+				print OUT $out."\n";
+				$done=1;
+				last;
+			}
+			sleep 1;
+		}
+		if ($done==1){
+			last;
+		}
+	}
+}
+
+sub smb{
+	my @user;
+	my @pass;
+	open UN,"dic\\smb_user.txt";
+	while (<UN>){
+		my $user=$_;
+		chomp ($user);
+		push @user,$user;
+	}
+	close UN;
+	open PW,"dic\\smb_pass.txt";
+	while (<PW>){
+		my $pass=$_;
+		chomp ($pass);
+		push @pass,$pass;
+	}
+	close PW;
+	my $done=0;
+	my $ip=$_[0];
+	my $port=$_[1];
+	foreach my $user(@user){
+		foreach my $pass(@pass){
+			my $client = SMB::Client->new("//$ip/admin\$",username => $user,password => $pass);
+			my $tree = $client->connect_tree;
+			if ($tree){
+				my $out="smb,$ip:$port,$user:$pass";
 				print OUT $out."\n";
 				$done=1;
 				last;
